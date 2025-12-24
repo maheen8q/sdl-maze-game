@@ -244,7 +244,7 @@ void checkPlayerCollision(Player *player, Coin coins[], int maxCoins) {
             coins[i].collected = 1;
             player->coins++;
             player->totalCoins++;
-            sprintf(message, "Collected a coin! Total coins: %d\n", player->coins);
+            sprintf(message, "Collected a coin! Total coins: %d", player->coins);
             messageTime = SDL_GetTicks();
         }
     }

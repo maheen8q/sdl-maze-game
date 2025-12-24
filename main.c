@@ -81,7 +81,9 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
 
             // Draw floor first if it's a path
             if (maze[i][j] == ' ') {
-                SDL_RenderTexture(renderer, floorTex, NULL, &rect);
+                //SDL_RenderTexture(renderer, floorTex, NULL, &rect);
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 80);
+                SDL_RenderFillRect(renderer, &rect);
             }
             // Draw wall
             else if (maze[i][j] == '#') {
@@ -89,7 +91,9 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
             }
             // Draw key
             else if (maze[i][j] == 'K') {
-                SDL_RenderTexture(renderer, floorTex, NULL, &rect); 
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 80); 
+                SDL_RenderFillRect(renderer, &rect);
+
                 SDL_FRect keyRect = {
                 rect.x - centerOffsetItem,
                  rect.y - centerOffsetItem,
@@ -101,7 +105,8 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
             }
             // Draw door
             else if (maze[i][j] == 'D') {
-                SDL_RenderTexture(renderer, floorTex, NULL, &rect);
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 80);
+                SDL_RenderFillRect(renderer, &rect);
                  
                 SDL_FRect doorRect = {
                  rect.x - centerOffsetItem,
@@ -529,6 +534,11 @@ void renderRules(SDL_Renderer *renderer, TTF_Font *font) {
     }
 }
 
+void drawBackground(SDL_Renderer *renderer, SDL_Texture *bgTex) {
+    SDL_RenderTexture(renderer, bgTex, NULL, NULL); // fills whole window
+}
+
+
 //main function
 int main(int argc, char *argv[])
 { 
@@ -576,6 +586,8 @@ if (!window) {
         SDL_Quit();
         return 1;
     }
+
+SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 //loads images
  SDL_Texture *playerTex = loadTexture(renderer, "assets/player.png");
  SDL_Texture *keyTex    = loadTexture(renderer, "assets/key.png");
@@ -583,6 +595,9 @@ if (!window) {
  SDL_Texture *wallTex  = loadTexture(renderer, "assets/wall.png");
  SDL_Texture *floorTex = loadTexture(renderer, "assets/floor.png");
  SDL_Texture *coinTex = loadTexture(renderer, "assets/coin.png");
+ SDL_Texture *bgTex = loadTexture(renderer, "assets/background.png");
+
+ SDL_SetTextureAlphaMod(floorTex, 120);
 
  
 
@@ -595,6 +610,9 @@ if (!playerTex || !keyTex || !doorTex || !wallTex || !floorTex || !coinTex) {
         SDL_Quit();
         return 1; 
     }
+if (!bgTex) {
+    printf("Failed to load background image\n");
+}
 
 //maze
  char maze[ROWS][COLUMNS];
@@ -701,7 +719,7 @@ if (!playerTex || !keyTex || !doorTex || !wallTex || !floorTex || !coinTex) {
 
                  player.x = nx;
                  player.y = ny;
-
+                 player.steps++;
                 if (maze[nx][ny] == 'K') {
                   player.key = 1;          
                   maze[nx][ny] = ' ';     
@@ -742,6 +760,8 @@ if (!playerTex || !keyTex || !doorTex || !wallTex || !floorTex || !coinTex) {
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
+
+        drawBackground(renderer, bgTex);
         
          if (currentState == STATE_MENU) {
             drawButton(renderer, font, &playBtn);

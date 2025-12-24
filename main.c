@@ -279,20 +279,119 @@ int getHighScore(char *bestUser) {
 }
 
 int calculateSCore(Player *player) {
-    return player->coins * 10;   // simple score formula
+    time_t currentTime = time(NULL);
+    int elapsedSeconds = (int)(currentTime - player->startTime);
+    int coinsScore = player->coins * 100;   
+    int timePenalty = elapsedSeconds * 1;  // 1 point per second
+    
+    int finalScore = coinsScore - timePenalty;
+    
+    if (finalScore < 0) {
+        finalScore = 0;
+    }
+    
+    return finalScore;
+    
 }
 
-void renderGameOver(SDL_Renderer *renderer, TTF_Font *font, int finalScore, int highScore) {
-    char text[100];
-    snprintf(text, sizeof(text), "Game Over! Score: %d, High Score: %d", finalScore, highScore);
-
+void renderGameOver(SDL_Renderer *renderer, TTF_Font *font, int finalScore, 
+                    int highScore, int elapsedSeconds, int coins) {
     SDL_Color yellow = {255, 255, 0, 255};
-    SDL_Surface *s = TTF_RenderText_Blended(font, text, strlen(text), yellow);
-    SDL_Texture *t = SDL_CreateTextureFromSurface(renderer, s);
-    SDL_FRect rect = {200, 300, s->w, s->h};
-    SDL_RenderTexture(renderer, t, NULL, &rect);
-    SDL_DestroySurface(s);
-    SDL_DestroyTexture(t);
+    SDL_Color white = {255, 255, 255, 255};
+    
+    int yOffset = 100;
+    int lineHeight = 50;
+
+    // Title
+    char titleText[100];
+    snprintf(titleText, sizeof(titleText), "GAME OVER! You Won!");
+    SDL_Surface *titleSurf = TTF_RenderText_Blended(font, titleText, strlen(titleText), yellow);
+    if (titleSurf) {
+        SDL_Texture *titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
+        if (titleTex) {
+            SDL_FRect titleRect = {150, yOffset, (float)titleSurf->w, (float)titleSurf->h};
+            SDL_RenderTexture(renderer, titleTex, NULL, &titleRect);
+            SDL_DestroyTexture(titleTex);
+        }
+        SDL_DestroySurface(titleSurf);
+    }
+    yOffset += lineHeight;
+
+    // Coins collected
+    char coinsText[100];
+    snprintf(coinsText, sizeof(coinsText), "Coins Collected: %d", coins);
+    SDL_Surface *coinsSurf = TTF_RenderText_Blended(font, coinsText, strlen(coinsText), white);
+    if (coinsSurf) {
+        SDL_Texture *coinsTex = SDL_CreateTextureFromSurface(renderer, coinsSurf);
+        if (coinsTex) {
+            SDL_FRect coinsRect = {150, yOffset, (float)coinsSurf->w, (float)coinsSurf->h};
+            SDL_RenderTexture(renderer, coinsTex, NULL, &coinsRect);
+            SDL_DestroyTexture(coinsTex);
+        }
+        SDL_DestroySurface(coinsSurf);
+    }
+    yOffset += lineHeight;
+
+    // Time taken
+    char timeText[100];
+    int minutes = elapsedSeconds / 60;
+    int secs = elapsedSeconds % 60;
+    snprintf(timeText, sizeof(timeText), "Time Taken: %02d:%02d", minutes, secs);
+    SDL_Surface *timeSurf = TTF_RenderText_Blended(font, timeText, strlen(timeText), white);
+    if (timeSurf) {
+        SDL_Texture *timeTex = SDL_CreateTextureFromSurface(renderer, timeSurf);
+        if (timeTex) {
+            SDL_FRect timeRect = {150, yOffset, (float)timeSurf->w, (float)timeSurf->h};
+            SDL_RenderTexture(renderer, timeTex, NULL, &timeRect);
+            SDL_DestroyTexture(timeTex);
+        }
+        SDL_DestroySurface(timeSurf);
+    }
+    yOffset += lineHeight;
+
+    // Final score
+    char scoreText[100];
+    snprintf(scoreText, sizeof(scoreText), "Your Score: %d", finalScore);
+    SDL_Surface *scoreSurf = TTF_RenderText_Blended(font, scoreText, strlen(scoreText), yellow);
+    if (scoreSurf) {
+        SDL_Texture *scoreTex = SDL_CreateTextureFromSurface(renderer, scoreSurf);
+        if (scoreTex) {
+            SDL_FRect scoreRect = {150, yOffset, (float)scoreSurf->w, (float)scoreSurf->h};
+            SDL_RenderTexture(renderer, scoreTex, NULL, &scoreRect);
+            SDL_DestroyTexture(scoreTex);
+        }
+        SDL_DestroySurface(scoreSurf);
+    }
+    yOffset += lineHeight;
+
+    // High score
+    char highScoreText[100];
+    snprintf(highScoreText, sizeof(highScoreText), "High Score: %d", highScore);
+    SDL_Surface *highScoreSurf = TTF_RenderText_Blended(font, highScoreText, 
+                                                         strlen(highScoreText), white);
+    if (highScoreSurf) {
+        SDL_Texture *highScoreTex = SDL_CreateTextureFromSurface(renderer, highScoreSurf);
+        if (highScoreTex) {
+            SDL_FRect highScoreRect = {150, yOffset, (float)highScoreSurf->w, (float)highScoreSurf->h};
+            SDL_RenderTexture(renderer, highScoreTex, NULL, &highScoreRect);
+            SDL_DestroyTexture(highScoreTex);
+        }
+        SDL_DestroySurface(highScoreSurf);
+    }
+
+    // Press ESC to return to menu instruction
+    yOffset += lineHeight + 20;
+    const char *escInst = "Press ESC to return to menu";
+    SDL_Surface *escSurf = TTF_RenderText_Blended(font, escInst, strlen(escInst), yellow);
+    if (escSurf) {
+        SDL_Texture *escTex = SDL_CreateTextureFromSurface(renderer, escSurf);
+        if (escTex) {
+            SDL_FRect escRect = {150, yOffset, (float)escSurf->w, (float)escSurf->h};
+            SDL_RenderTexture(renderer, escTex, NULL, &escRect);
+            SDL_DestroyTexture(escTex);
+        }
+        SDL_DestroySurface(escSurf);
+    }
 }
 
 void renderHighScore(SDL_Renderer *renderer, TTF_Font *font) {
@@ -574,12 +673,14 @@ if (!playerTex || !keyTex || !doorTex || !wallTex || !floorTex || !coinTex) {
             else if (currentState == STATE_RULES && event.type == SDL_EVENT_KEY_DOWN) {
                  if (event.key.scancode == SDL_SCANCODE_RETURN) {
                      currentState = STATE_PLAY;
+                     player.startTime = time(NULL);
                          }
             }
             else if (currentState == STATE_RULES && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
                     currentState = STATE_PLAY;
+                    player.startTime = time(NULL);
             }
-            
+
             else if (currentState == STATE_PLAY && event.type == SDL_EVENT_KEY_DOWN) {
                
                     int nx = player.x;
@@ -700,10 +801,17 @@ if (!playerTex || !keyTex || !doorTex || !wallTex || !floorTex || !coinTex) {
                      playerTex, keyTex, doorTex,
                      wallTex, floorTex, coinTex);
 
+             time_t currentTime = time(NULL);
+            int elapsedSeconds = (int)(currentTime - player.startTime);
+            int minutes = elapsedSeconds / 60;
+            int secs = elapsedSeconds % 60;
+            char timeStr[20];
+            snprintf(timeStr, sizeof(timeStr), "%02d:%02d", minutes, secs);
+
             // HUD
             SDL_Color yellow = {255,255,0,255};
             char hud[50];
-            snprintf(hud, sizeof(hud), "Coins: %d | Steps: %d", player.coins, player.steps);
+            snprintf(hud, sizeof(hud), "Coins: %d | Steps: %d | Time %s", player.coins, player.steps, timeStr);
 
             SDL_Surface *hudSurf = TTF_RenderText_Blended(font, hud, strlen(hud), yellow);
             if (hudSurf) {
@@ -736,7 +844,9 @@ if (!playerTex || !keyTex || !doorTex || !wallTex || !floorTex || !coinTex) {
         }
 
     else if (currentState == STATE_GAMEOVER) {
-            renderGameOver(renderer, font, finalScore, highScore);
+            time_t endTime = time(NULL);
+            int totalTime = (int)(endTime - player.startTime);
+            renderGameOver(renderer, font, finalScore, highScore, totalTime, player.coins);
         }
 
 

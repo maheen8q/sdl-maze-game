@@ -488,7 +488,7 @@ void renderRules(SDL_Renderer *renderer, TTF_Font *font) {
     yOffset += lineHeight;
 
     // Rule 4
-    const char *rule4 = "4. Reach the exit door to win the game";
+    const char *rule4 = "4. Reach the exit door as soon as possible to score higher";
     SDL_Surface *rule4Surf = TTF_RenderText_Blended(font, rule4, strlen(rule4), white);
     if (rule4Surf) {
         SDL_Texture *rule4Tex = SDL_CreateTextureFromSurface(renderer, rule4Surf);
@@ -502,7 +502,7 @@ void renderRules(SDL_Renderer *renderer, TTF_Font *font) {
     yOffset += lineHeight;
 
     // Rule 5
-    const char *rule5 = "5. Your score is based on coins collected";
+    const char *rule5 = "5. Your score is based on coins collected and the time taken";
     SDL_Surface *rule5Surf = TTF_RenderText_Blended(font, rule5, strlen(rule5), white);
     if (rule5Surf) {
         SDL_Texture *rule5Tex = SDL_CreateTextureFromSurface(renderer, rule5Surf);

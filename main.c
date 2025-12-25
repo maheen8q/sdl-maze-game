@@ -29,6 +29,7 @@ typedef struct {
     int totalCoins;
     int key;
     time_t startTime;
+    time_t endTime;
 } Player;
 
 typedef enum {
@@ -792,6 +793,8 @@ if (!bgTex) {
                 if (maze[nx][ny] == 'D') {
                     if (player.key) {
                         //victory
+                      player.endTime = time(NULL); 
+
                       finalScore = calculateSCore(&player);
                       highScore= getHighScore(bestUser);
                       currentState = STATE_GAMEOVER;
@@ -949,8 +952,7 @@ if (!bgTex) {
         }
 
     else if (currentState == STATE_GAMEOVER) {
-            time_t endTime = time(NULL);
-            int totalTime = (int)(endTime - player.startTime);
+            int totalTime = (int)(player.endTime - player.startTime);
             renderGameOver(renderer, font, finalScore, highScore, totalTime, player.coins);
         }
 

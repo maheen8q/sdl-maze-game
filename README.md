@@ -76,7 +76,6 @@ Run the executable:
 
 🖼️ Screenshots
 
-Add screenshots inside your assets/screenshots/ folder and include them like this:
 
 ![Menu Screen]
 <img width="949" height="609" alt="image" src="https://github.com/user-attachments/assets/0f5ab338-9572-4956-9131-e8232bfe311c" />

@@ -78,15 +78,17 @@ Run the executable:
 
 Add screenshots inside your assets/screenshots/ folder and include them like this:
 
-![Menu Screen](assets/screenshots/menu.png)
-![Gameplay](assets/screenshots/gameplay.png)
+![Menu Screen]
+<img width="801" height="634" alt="image" src="https://github.com/user-attachments/assets/cb3a28a5-eeeb-40f1-915c-1b88874ea2e9" />
+
+![Gameplay]
+<img width="945" height="552" alt="image" src="https://github.com/user-attachments/assets/f41aa630-7a21-444f-9483-bec363e23c95" />
+<img width="1907" height="1008" alt="image" src="https://github.com/user-attachments/assets/88e6c835-f6fa-471f-b4f9-ff9a9e04444b" />
+
+
 ![Game Over](assets/screenshots/gameover.png)
+<img width="1038" height="718" alt="image" src="https://github.com/user-attachments/assets/301f57e7-b456-4956-ab12-7eb0384a3d8c" />
 
-
-Example:
-
-
-(Make sure your screenshot paths match your repo!)
 
 🧩 Assets
 

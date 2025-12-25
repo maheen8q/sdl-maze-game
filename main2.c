@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
+#include <math.h>
 
 
 
@@ -55,9 +56,9 @@ Uint32 messageTime = 0;
 void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, SDL_Window *window,
               SDL_Texture *playerTex, SDL_Texture *keyTex, SDL_Texture *doorTex, SDL_Texture *wallTex, SDL_Texture *floorTex, SDL_Texture *coinTex ) 
 {
-    int size = 24;
+    int size = 28;
     int playersize = 24;
-    int itemsize = 28;
+    int itemsize = 32;
     
 
    float centerOffsetPlayer = (playersize - size) / 2.0f;
@@ -81,15 +82,35 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
 
             // Draw floor first if it's a path
             if (maze[i][j] == ' ') {
-                SDL_RenderTexture(renderer, floorTex, NULL, &rect);
+                //SDL_RenderTexture(renderer, floorTex, NULL, &rect);
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 80);
+                SDL_RenderFillRect(renderer, &rect);
             }
             // Draw wall
             else if (maze[i][j] == '#') {
-                SDL_RenderTexture(renderer, wallTex, NULL, &rect);
+             // Draw shadow first (offset down-right)
+               SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);  // Dark shadow
+               SDL_FRect shadowRect = {rect.x + 2, rect.y + 2, rect.w, rect.h};
+               SDL_RenderFillRect(renderer, &shadowRect);
+    
+              // Draw main wall texture
+               SDL_RenderTexture(renderer, wallTex, NULL, &rect);
+    
+              // Add top-left highlight for 3D effect
+               SDL_SetRenderDrawColor(renderer, 150, 180, 220, 150);  // Light blue highlight
+               SDL_RenderLine(renderer, rect.x, rect.y, rect.x + rect.w, rect.y);
+               SDL_RenderLine(renderer, rect.x, rect.y, rect.x, rect.y + rect.h);
+    
+              // Add bottom-right shadow edge for depth
+               SDL_SetRenderDrawColor(renderer, 30, 50, 100, 200);  // Dark shadow edge
+               SDL_RenderLine(renderer, rect.x + rect.w, rect.y, rect.x + rect.w, rect.y + rect.h);
+               SDL_RenderLine(renderer, rect.x, rect.y + rect.h, rect.x + rect.w, rect.y + rect.h);
             }
             // Draw key
             else if (maze[i][j] == 'K') {
-                SDL_RenderTexture(renderer, floorTex, NULL, &rect); 
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 80); 
+                SDL_RenderFillRect(renderer, &rect);
+
                 SDL_FRect keyRect = {
                 rect.x - centerOffsetItem,
                  rect.y - centerOffsetItem,
@@ -98,10 +119,15 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
                  };
                 
                 SDL_RenderTexture(renderer, keyTex, NULL, &keyRect);
+                //key glow effect
+                SDL_SetRenderDrawColor(renderer, 255, 200, 0, 100);
+                SDL_FRect glowRect = {keyRect.x - 3, keyRect.y - 3, keyRect.w + 6, keyRect.h + 6};
+                SDL_RenderRect(renderer, &glowRect);
             }
             // Draw door
             else if (maze[i][j] == 'D') {
-                SDL_RenderTexture(renderer, floorTex, NULL, &rect);
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 80);
+                SDL_RenderFillRect(renderer, &rect);
                  
                 SDL_FRect doorRect = {
                  rect.x - centerOffsetItem,
@@ -110,9 +136,16 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
                  itemsize
                  };
                 SDL_RenderTexture(renderer, doorTex, NULL, &doorRect);
+                //door glow effect
+                SDL_SetRenderDrawColor(renderer, 200, 100, 255, 100);
+                SDL_FRect doorGlowRect = {doorRect.x - 3, doorRect.y - 3, doorRect.w + 6, doorRect.h + 6};
+                SDL_RenderRect(renderer, &doorGlowRect);
             }
         }
     }
+
+    Uint32 currentTick = SDL_GetTicks();
+    int glowIntensity = (int)(50 + 50 * sin(currentTick / 500.0)); 
 
     for (int i = 0; i < MAX_COINS; i++) {
     if (!coins[i].collected) {
@@ -123,6 +156,10 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
             itemsize
         };
         SDL_RenderTexture(renderer, coinTex, NULL, &coinRect);
+        // Draw glow effect
+        SDL_SetRenderDrawColor(renderer, 255, 255, 0, glowIntensity);
+        SDL_FRect coinGlowRect = {coinRect.x - 2, coinRect.y - 2, coinRect.w + 4, coinRect.h + 4};
+        SDL_RenderRect(renderer, &coinGlowRect);
     }
 }
 
@@ -136,6 +173,10 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
     playersize,
     playersize
    };
+   // Player glow
+    SDL_SetRenderDrawColor(renderer, 0, 255, 100, 150);
+    SDL_FRect playerGlowRect = {playerRect.x - 4, playerRect.y - 4, playerRect.w + 8, playerRect.h + 8};
+    SDL_RenderRect(renderer, &playerGlowRect);
     SDL_RenderTexture(renderer, playerTex, NULL, &playerRect);
 }
 
@@ -239,7 +280,7 @@ void checkPlayerCollision(Player *player, Coin coins[], int maxCoins) {
             coins[i].collected = 1;
             player->coins++;
             player->totalCoins++;
-            sprintf(message, "Collected a coin! Total coins: %d\n", player->coins);
+            sprintf(message, "Collected a coin! Total coins: %d", player->coins);
             messageTime = SDL_GetTicks();
         }
     }
@@ -279,20 +320,119 @@ int getHighScore(char *bestUser) {
 }
 
 int calculateSCore(Player *player) {
-    return player->coins * 10;   // simple score formula
+    time_t currentTime = time(NULL);
+    int elapsedSeconds = (int)(currentTime - player->startTime);
+    int coinsScore = player->coins * 100;   
+    int timePenalty = elapsedSeconds * 1;  // 1 point per second
+    
+    int finalScore = coinsScore - timePenalty;
+    
+    if (finalScore < 0) {
+        finalScore = 0;
+    }
+    
+    return finalScore;
+    
 }
 
-void renderGameOver(SDL_Renderer *renderer, TTF_Font *font, int finalScore, int highScore) {
-    char text[100];
-    snprintf(text, sizeof(text), "Game Over! Score: %d, High Score: %d", finalScore, highScore);
-
+void renderGameOver(SDL_Renderer *renderer, TTF_Font *font, int finalScore, 
+                    int highScore, int elapsedSeconds, int coins) {
     SDL_Color yellow = {255, 255, 0, 255};
-    SDL_Surface *s = TTF_RenderText_Blended(font, text, strlen(text), yellow);
-    SDL_Texture *t = SDL_CreateTextureFromSurface(renderer, s);
-    SDL_FRect rect = {200, 300, s->w, s->h};
-    SDL_RenderTexture(renderer, t, NULL, &rect);
-    SDL_DestroySurface(s);
-    SDL_DestroyTexture(t);
+    SDL_Color white = {255, 255, 255, 255};
+    
+    int yOffset = 100;
+    int lineHeight = 50;
+
+    // Title
+    char titleText[100];
+    snprintf(titleText, sizeof(titleText), "GAME OVER! You Won!");
+    SDL_Surface *titleSurf = TTF_RenderText_Blended(font, titleText, strlen(titleText), yellow);
+    if (titleSurf) {
+        SDL_Texture *titleTex = SDL_CreateTextureFromSurface(renderer, titleSurf);
+        if (titleTex) {
+            SDL_FRect titleRect = {150, yOffset, (float)titleSurf->w, (float)titleSurf->h};
+            SDL_RenderTexture(renderer, titleTex, NULL, &titleRect);
+            SDL_DestroyTexture(titleTex);
+        }
+        SDL_DestroySurface(titleSurf);
+    }
+    yOffset += lineHeight;
+
+    // Coins collected
+    char coinsText[100];
+    snprintf(coinsText, sizeof(coinsText), "Coins Collected: %d", coins);
+    SDL_Surface *coinsSurf = TTF_RenderText_Blended(font, coinsText, strlen(coinsText), white);
+    if (coinsSurf) {
+        SDL_Texture *coinsTex = SDL_CreateTextureFromSurface(renderer, coinsSurf);
+        if (coinsTex) {
+            SDL_FRect coinsRect = {150, yOffset, (float)coinsSurf->w, (float)coinsSurf->h};
+            SDL_RenderTexture(renderer, coinsTex, NULL, &coinsRect);
+            SDL_DestroyTexture(coinsTex);
+        }
+        SDL_DestroySurface(coinsSurf);
+    }
+    yOffset += lineHeight;
+
+    // Time taken
+    char timeText[100];
+    int minutes = elapsedSeconds / 60;
+    int secs = elapsedSeconds % 60;
+    snprintf(timeText, sizeof(timeText), "Time Taken: %02d:%02d", minutes, secs);
+    SDL_Surface *timeSurf = TTF_RenderText_Blended(font, timeText, strlen(timeText), white);
+    if (timeSurf) {
+        SDL_Texture *timeTex = SDL_CreateTextureFromSurface(renderer, timeSurf);
+        if (timeTex) {
+            SDL_FRect timeRect = {150, yOffset, (float)timeSurf->w, (float)timeSurf->h};
+            SDL_RenderTexture(renderer, timeTex, NULL, &timeRect);
+            SDL_DestroyTexture(timeTex);
+        }
+        SDL_DestroySurface(timeSurf);
+    }
+    yOffset += lineHeight;
+
+    // Final score
+    char scoreText[100];
+    snprintf(scoreText, sizeof(scoreText), "Your Score: %d", finalScore);
+    SDL_Surface *scoreSurf = TTF_RenderText_Blended(font, scoreText, strlen(scoreText), yellow);
+    if (scoreSurf) {
+        SDL_Texture *scoreTex = SDL_CreateTextureFromSurface(renderer, scoreSurf);
+        if (scoreTex) {
+            SDL_FRect scoreRect = {150, yOffset, (float)scoreSurf->w, (float)scoreSurf->h};
+            SDL_RenderTexture(renderer, scoreTex, NULL, &scoreRect);
+            SDL_DestroyTexture(scoreTex);
+        }
+        SDL_DestroySurface(scoreSurf);
+    }
+    yOffset += lineHeight;
+
+    // High score
+    char highScoreText[100];
+    snprintf(highScoreText, sizeof(highScoreText), "High Score: %d", highScore);
+    SDL_Surface *highScoreSurf = TTF_RenderText_Blended(font, highScoreText, 
+                                                         strlen(highScoreText), white);
+    if (highScoreSurf) {
+        SDL_Texture *highScoreTex = SDL_CreateTextureFromSurface(renderer, highScoreSurf);
+        if (highScoreTex) {
+            SDL_FRect highScoreRect = {150, yOffset, (float)highScoreSurf->w, (float)highScoreSurf->h};
+            SDL_RenderTexture(renderer, highScoreTex, NULL, &highScoreRect);
+            SDL_DestroyTexture(highScoreTex);
+        }
+        SDL_DestroySurface(highScoreSurf);
+    }
+
+    // Press ESC to return to menu instruction
+    yOffset += lineHeight + 20;
+    const char *escInst = "Press ESC to return to menu";
+    SDL_Surface *escSurf = TTF_RenderText_Blended(font, escInst, strlen(escInst), yellow);
+    if (escSurf) {
+        SDL_Texture *escTex = SDL_CreateTextureFromSurface(renderer, escSurf);
+        if (escTex) {
+            SDL_FRect escRect = {150, yOffset, (float)escSurf->w, (float)escSurf->h};
+            SDL_RenderTexture(renderer, escTex, NULL, &escRect);
+            SDL_DestroyTexture(escTex);
+        }
+        SDL_DestroySurface(escSurf);
+    }
 }
 
 void renderHighScore(SDL_Renderer *renderer, TTF_Font *font) {
@@ -389,7 +529,7 @@ void renderRules(SDL_Renderer *renderer, TTF_Font *font) {
     yOffset += lineHeight;
 
     // Rule 4
-    const char *rule4 = "4. Reach the exit door to win the game";
+    const char *rule4 = "4. Reach the exit door as soon as possible to score higher";
     SDL_Surface *rule4Surf = TTF_RenderText_Blended(font, rule4, strlen(rule4), white);
     if (rule4Surf) {
         SDL_Texture *rule4Tex = SDL_CreateTextureFromSurface(renderer, rule4Surf);
@@ -403,7 +543,7 @@ void renderRules(SDL_Renderer *renderer, TTF_Font *font) {
     yOffset += lineHeight;
 
     // Rule 5
-    const char *rule5 = "5. Your score is based on coins collected";
+    const char *rule5 = "5. Your score is based on coins collected and the time taken";
     SDL_Surface *rule5Surf = TTF_RenderText_Blended(font, rule5, strlen(rule5), white);
     if (rule5Surf) {
         SDL_Texture *rule5Tex = SDL_CreateTextureFromSurface(renderer, rule5Surf);
@@ -430,36 +570,40 @@ void renderRules(SDL_Renderer *renderer, TTF_Font *font) {
     }
 }
 
+void drawBackground(SDL_Renderer *renderer, SDL_Texture *bgTex) {
+    SDL_RenderTexture(renderer, bgTex, NULL, NULL); // fills whole window
+}
+
+
 //main function
 int main(int argc, char *argv[])
 { 
-    // Initialize SDL
     SDL_Init(SDL_INIT_VIDEO);
 
-    // Initialize TTF
-    if (TTF_Init() == -1) {
-        printf("TTF_Init error: %s\n", SDL_GetError());
-        SDL_Quit();
-        return 1;
-    }
 
-    // Load font
-    TTF_Font *font = TTF_OpenFont("assets/arial.ttf", 24);
-    if (!font) {
-        printf("Failed to load font: %s\n", SDL_GetError());
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
+    if (TTF_Init()==-1) {
+    printf("TTF_Init error: %s\n", SDL_GetError());
+    SDL_Quit();
+    return 1;
+}
 
-    // Create window
+TTF_Font *font = TTF_OpenFont("assets/arial.ttf", 24);
+if (!font) {
+    printf("Failed to load font: %s\n", SDL_GetError());
+    TTF_Quit();
+    SDL_Quit();
+    return 1;
+}
+
+
     SDL_Window *window = SDL_CreateWindow(
-        "Maze Game",
-        800, 600,
-        SDL_WINDOW_RESIZABLE
-    );
-    
-    if (!window) {
+    "Maze game",
+    800, 600,
+    SDL_WINDOW_RESIZABLE
+
+);
+
+if (!window) {
         printf("Failed to create window: %s\n", SDL_GetError());
         TTF_CloseFont(font);
         TTF_Quit();
@@ -467,10 +611,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Create renderer
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
-    
-    if (!renderer) {
+//create renderer
+ SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
+
+ if (!renderer) {
         printf("Failed to create renderer: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
         TTF_CloseFont(font);
@@ -479,186 +623,190 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Load textures
-    SDL_Texture *playerTex = loadTexture(renderer, "assets/player.png");
-    SDL_Texture *keyTex = loadTexture(renderer, "assets/key.png");
-    SDL_Texture *doorTex = loadTexture(renderer, "assets/door.png");
-    SDL_Texture *wallTex = loadTexture(renderer, "assets/wall.png");
-    SDL_Texture *floorTex = loadTexture(renderer, "assets/floor.png");
-    SDL_Texture *coinTex = loadTexture(renderer, "assets/coin.png");
+SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+//loads images
+ SDL_Texture *playerTex = loadTexture(renderer, "assets/player.png");
+ SDL_Texture *keyTex    = loadTexture(renderer, "assets/key.png");
+ SDL_Texture *doorTex   = loadTexture(renderer, "assets/door.png");
+ SDL_Texture *wallTex  = loadTexture(renderer, "assets/wall.png");
+ SDL_Texture *floorTex = loadTexture(renderer, "assets/floor.png");
+ SDL_Texture *coinTex = loadTexture(renderer, "assets/coin.png");
+ SDL_Texture *bgTex = loadTexture(renderer, "assets/background.png");
 
-    if (!playerTex || !keyTex || !doorTex || !wallTex || !floorTex || !coinTex) {
+ SDL_SetTextureAlphaMod(floorTex, 120);
+
+ 
+
+if (!playerTex || !keyTex || !doorTex || !wallTex || !floorTex || !coinTex) {
         printf("Fatal: One or more textures failed to load. Check your assets folder.\n");
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         TTF_CloseFont(font);
         TTF_Quit();
         SDL_Quit();
-        return 1;
+        return 1; 
     }
+if (!bgTex) {
+    printf("Failed to load background image\n");
+}
 
-    // Generate maze and place items
-    char maze[ROWS][COLUMNS];
+//maze
+ char maze[ROWS][COLUMNS];
     generateMaze(maze);
     srand(time(NULL));
     
-    // Initialize player
-    Player player = {1, 1, 0, 0, 0, 0, 0};
+
+    Player player = {1,1,0,0,0,0,0};
     placeCoins(maze, player, coins, MAX_COINS);
 
-    // Create buttons
-    Button playBtn = {{300, 200, 200, 50}, "Play"};
+    Button playBtn  = {{300, 200, 200, 50}, "Play"};
     Button scoreBtn = {{300, 270, 200, 50}, "High Score"};
-    Button quitBtn = {{300, 340, 200, 50}, "Quit"};
+    Button quitBtn  = {{300, 340, 200, 50}, "Quit"};
 
-    // Game state variables
+
     GameState currentState = STATE_MENU;
-    int finalScore = 0;
-    int highScore = 0;
-    char bestUser[30] = {0};
-    char playerName[30] = {0};
+    int finalScore=0;
+    int highScore=0;
+    char bestUser[30]= "";
+    
+    char playerName[30] = ""; 
     int nameLen = 0;
+
     int running = 1;
 
-    // Start text input for menu
     SDL_StartTextInput(window);
 
-    // ==================== MAIN GAME LOOP ====================
+    //Main game loop
     while (running) {
         SDL_Event event;
-
-        // Handle all events
+        //Handle all events
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) {
+            if (event.type == SDL_EVENT_QUIT)
                 running = 0;
-            }
-
-            // MENU STATE
-            if (currentState == STATE_MENU) {
-                // Text input for player name
-                if (event.type == SDL_EVENT_TEXT_INPUT) {
-                    if (event.text.text && event.text.text[0] != '\0') {
-                        char c = event.text.text[0];
-                        // Only accept printable ASCII and leave room for null terminator
-                        if ((c >= 32 && c <= 126) && nameLen < 29) {
-                            playerName[nameLen] = c;
-                            nameLen++;
-                            playerName[nameLen] = '\0';
-                        }
-                    }
+            if(currentState==STATE_MENU){
+                if (event.type == SDL_EVENT_TEXT_INPUT){
+            // Check if event.text.text is valid AND the character is valid
+                   if (event.text.text && event.text.text[0] != '\0'){
+                      // Don't add special characters or control codes
+                       char c = event.text.text[0];
+                       if ((c >= 32 && c <= 126) && nameLen < 29)  // Printable ASCII, leave room for null terminator
+                     {
+                       playerName[nameLen] = c;
+                       nameLen++;
+                       playerName[nameLen] = '\0';
+                     }
+               }
+           }
+            else if (event.type == SDL_EVENT_KEY_DOWN) {
+               if (event.key.scancode == SDL_SCANCODE_BACKSPACE && nameLen > 0) {
+                nameLen--;
+                playerName[nameLen] = '\0';
                 }
-                // Backspace handling
-                else if (event.type == SDL_EVENT_KEY_DOWN) {
-                    if (event.key.scancode == SDL_SCANCODE_BACKSPACE && nameLen > 0) {
-                        nameLen--;
-                        playerName[nameLen] = '\0';
-                    }
-                }
-                // Button clicks
-                else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-                    float mx = event.button.x;
-                    float my = event.button.y;
+           }
+            else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+                float mx = event.button.x;
+                float my = event.button.y;
 
-                    if (isClicked(&playBtn, mx, my)) {
-                        // Use default name if empty
-                        if (strlen(playerName) == 0) {
-                            strcpy(playerName, "Player1");
-                        }
-                        currentState = STATE_RULES;
-                    }
-                    else if (isClicked(&scoreBtn, mx, my)) {
-                        currentState = STATE_HIGHSCORE;
-                    }
-                    else if (isClicked(&quitBtn, mx, my)) {
-                        running = 0;
-                    }
+                if (isClicked(&playBtn, mx, my)) {
+                    if (strlen(playerName) == 0) {
+                    strcpy(playerName, "Player1");
+                 }
+                    currentState = STATE_RULES;
+                }
+
+                else if (isClicked(&scoreBtn, mx, my)) {
+                    currentState = STATE_HIGHSCORE;
+                }
+
+                else if (isClicked(&quitBtn, mx, my)) {
+                    running = 0;}
                 }
             }
 
-            // GAMEPLAY STATE
+            //GamePLay
             else if (currentState == STATE_RULES && event.type == SDL_EVENT_KEY_DOWN) {
                  if (event.key.scancode == SDL_SCANCODE_RETURN) {
                      currentState = STATE_PLAY;
+                     player.startTime = time(NULL);
                          }
             }
             else if (currentState == STATE_RULES && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
                     currentState = STATE_PLAY;
+                    player.startTime = time(NULL);
             }
 
             else if (currentState == STATE_PLAY && event.type == SDL_EVENT_KEY_DOWN) {
-                int nx = player.x;
-                int ny = player.y;
-                SDL_Scancode sc = event.key.scancode;
+               
+                    int nx = player.x;
+                    int ny = player.y;
 
-                // Handle movement
-                if (sc == SDL_SCANCODE_W) nx--;
-                if (sc == SDL_SCANCODE_S) nx++;
-                if (sc == SDL_SCANCODE_A) ny--;
-                if (sc == SDL_SCANCODE_D) ny++;
+                    SDL_Scancode sc = event.key.scancode;  // <- use scancode
 
-                // Check if new position is valid
-                if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLUMNS && maze[nx][ny] != '#') {
-                    int oldX = player.x;
-                    int oldY = player.y;
+                   if (sc == SDL_SCANCODE_W) nx--;
+                   if (sc == SDL_SCANCODE_S) nx++;
+                   if (sc == SDL_SCANCODE_A) ny--;
+                   if (sc == SDL_SCANCODE_D) ny++;
 
-                    player.x = nx;
-                    player.y = ny;
-                    player.steps++;
+    // Check collision
+                  if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLUMNS && maze[nx][ny] != '#') {
 
-                    // Check if player collected key
-                    if (maze[nx][ny] == 'K') {
-                        player.key = 1;
-                        maze[nx][ny] = ' ';
-                        sprintf(message, "Key collected!");
-                        messageTime = SDL_GetTicks();
-                    }
+                 int oldX = player.x;
+                 int oldY = player.y;
 
-                    // Check if player collected coins
-                    checkPlayerCollision(&player, coins, MAX_COINS);
+                 player.x = nx;
+                 player.y = ny;
+                 player.steps++;
+                if (maze[nx][ny] == 'K') {
+                  player.key = 1;          
+                  maze[nx][ny] = ' ';     
+                  sprintf(message, "Key collected!");
+                  messageTime = SDL_GetTicks();
+                  }
+                checkPlayerCollision(&player, coins, MAX_COINS);
+       
+                if (maze[nx][ny] == 'D') {
+                    if (player.key) {
+                        //victory
+                      finalScore = calculateSCore(&player);
+                      highScore= getHighScore(bestUser);
+                      currentState = STATE_GAMEOVER;
 
-                    // Check if player reached door
-                    if (maze[nx][ny] == 'D') {
-                        if (player.key) {
-                            // Player won!
-                            finalScore = calculateSCore(&player);
-                            highScore = getHighScore(bestUser);
-                            currentState = STATE_GAMEOVER;
-                            sprintf(message, "You reached the exit! Congratulations!");
-                            messageTime = SDL_GetTicks();
-                        }
-                        else {
-                            // Door is locked
-                            sprintf(message, "Door is locked! Find the key.");
-                            messageTime = SDL_GetTicks();
-                            player.x = oldX;
-                            player.y = oldY;
-                        }
-                    }
-                }
-            }
+                      snprintf(message, sizeof(message), "You reached the exit! Congratulations!\n");
+                      messageTime = SDL_GetTicks();
+                     }
 
-            // ESC key to return to menu
-            if (event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_ESCAPE) {
-                if (currentState == STATE_PLAY || currentState == STATE_HIGHSCORE) {
-                    currentState = STATE_MENU;
-                }
+                    else {
+                          snprintf(message, sizeof(message),"Door is locked! Find the key.\n");
+                          messageTime = SDL_GetTicks();
+                          player.x = oldX;
+                          player.y = oldY;
+                   }
             }
         }
+    }
 
-        // ==================== RENDERING ====================
+      if (event.type == SDL_EVENT_KEY_DOWN &&
+         event.key.scancode == SDL_SCANCODE_ESCAPE) {
+
+         if (currentState == STATE_PLAY || currentState == STATE_HIGHSCORE)
+             currentState = STATE_MENU;
+         }
+
+}
+
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        if (currentState == STATE_MENU) {
-            // Draw buttons
+        drawBackground(renderer, bgTex);
+        
+         if (currentState == STATE_MENU) {
             drawButton(renderer, font, &playBtn);
             drawButton(renderer, font, &scoreBtn);
             drawButton(renderer, font, &quitBtn);
 
-            SDL_Color white = {255, 255, 255, 255};
-
-            // Draw prompt
-            SDL_Surface *promptSurf = TTF_RenderText_Blended(font, "Enter your name:", 
+           SDL_Color white = {255,255,255,255};
+           
+           SDL_Surface *promptSurf = TTF_RenderText_Blended(font, "Enter your name:", 
                 strlen("Enter your name:"), white);
             if (promptSurf) {
                 SDL_Texture *promptTex = SDL_CreateTextureFromSurface(renderer, promptSurf);
@@ -669,8 +817,8 @@ int main(int argc, char *argv[])
                 }
                 SDL_DestroySurface(promptSurf);
             }
-            /* ---------- INPUT BOX ---------- */ 
-            SDL_FRect inputBox = {
+
+             SDL_FRect inputBox = {
                              150,        // same X as prompt
                              135,        // slightly below prompt
                              300,        // width
@@ -680,8 +828,7 @@ int main(int argc, char *argv[])
                       SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); 
                       SDL_RenderRect(renderer, &inputBox);
 
-
-            // Draw player name with cursor
+            // Player name
             char displayName[32];
             snprintf(displayName, sizeof(displayName), "%s_", playerName);
             
@@ -696,24 +843,40 @@ int main(int argc, char *argv[])
                 }
                 SDL_DestroySurface(nameSurf);
             }
+        
         }
-
+        
         else if (currentState == STATE_RULES) {
              // Render rules screen
              renderRules(renderer, font);
-           }   
-
+           } 
 
         else if (currentState == STATE_PLAY) {
-            // Draw maze
+
             drawMaze(renderer, maze, &player, window,
                      playerTex, keyTex, doorTex,
                      wallTex, floorTex, coinTex);
 
-            // Draw HUD
-            SDL_Color yellow = {255, 255, 0, 255};
+             time_t currentTime = time(NULL);
+            int elapsedSeconds = (int)(currentTime - player.startTime);
+            int minutes = elapsedSeconds / 60;
+            int secs = elapsedSeconds % 60;
+            char timeStr[20];
+            snprintf(timeStr, sizeof(timeStr), "%02d:%02d", minutes, secs);
+
+            // Draw HUD background
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);  // Semi-transparent black
+            SDL_FRect hudBg = {5, 5, 450, 60};
+            SDL_RenderFillRect(renderer, &hudBg);
+    
+            // Draw HUD border
+            SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+            SDL_RenderRect(renderer, &hudBg);
+
+            // HUD
+            SDL_Color yellow = {255,255,0,255};
             char hud[50];
-            snprintf(hud, sizeof(hud), "Coins: %d | Steps: %d", player.coins, player.steps);
+            snprintf(hud, sizeof(hud), "Coins: %d | Steps: %d | Time %s", player.coins, player.steps, timeStr);
 
             SDL_Surface *hudSurf = TTF_RenderText_Blended(font, hud, strlen(hud), yellow);
             if (hudSurf) {
@@ -725,38 +888,46 @@ int main(int argc, char *argv[])
                 }
                 SDL_DestroySurface(hudSurf);
             }
-
-            // Draw temporary message
+            
             if (SDL_GetTicks() - messageTime < 2000) {
                 SDL_Color white = {255, 255, 255, 255};
                 SDL_Surface *msgSurf = TTF_RenderText_Blended(font, message, strlen(message), white);
                 if (msgSurf) {
                     SDL_Texture *msgTex = SDL_CreateTextureFromSurface(renderer, msgSurf);
                     if (msgTex) {
-                        SDL_FRect msgRect = {10, 50, (float)msgSurf->w, (float)msgSurf->h};
-                        SDL_RenderTexture(renderer, msgTex, NULL, &msgRect);
-                        SDL_DestroyTexture(msgTex);
+                        // Message background
+                      SDL_SetRenderDrawColor(renderer, 0, 100, 200, 200);
+                      SDL_FRect msgBg = {5, 70, (float)msgSurf->w + 20, (float)msgSurf->h + 10};
+                      SDL_RenderFillRect(renderer, &msgBg);
+                      SDL_SetRenderDrawColor(renderer, 100, 200, 255, 255);
+                      SDL_RenderRect(renderer, &msgBg);
+                
+                      SDL_FRect msgRect = {15, 75, (float)msgSurf->w, (float)msgSurf->h};
+                      SDL_RenderTexture(renderer, msgTex, NULL, &msgRect);
+                      SDL_DestroyTexture(msgTex);
                     }
-                    SDL_DestroySurface(msgSurf);
+                SDL_DestroySurface(msgSurf);
                 }
             }
-        }
+    }
 
-        else if (currentState == STATE_HIGHSCORE) {
+    else if (currentState == STATE_HIGHSCORE) {
             renderHighScore(renderer, font);
         }
 
-        else if (currentState == STATE_GAMEOVER) {
-            renderGameOver(renderer, font, finalScore, highScore);
+    else if (currentState == STATE_GAMEOVER) {
+            time_t endTime = time(NULL);
+            int totalTime = (int)(endTime - player.startTime);
+            renderGameOver(renderer, font, finalScore, highScore, totalTime, player.coins);
         }
 
-        SDL_RenderPresent(renderer);
-        SDL_Delay(16);  // ~60 FPS
+
+       SDL_RenderPresent(renderer);
+       SDL_Delay(16);
     }
 
-    // ==================== CLEANUP ====================
     SDL_StopTextInput(window);
-    
+
     SDL_DestroyTexture(playerTex);
     SDL_DestroyTexture(keyTex);
     SDL_DestroyTexture(doorTex);
@@ -764,6 +935,8 @@ int main(int argc, char *argv[])
     SDL_DestroyTexture(floorTex);
     SDL_DestroyTexture(coinTex);
 
+
+    //IMG_Quit();
     TTF_CloseFont(font);
     TTF_Quit();
     SDL_DestroyRenderer(renderer);

@@ -42,11 +42,11 @@ Press ESC anytime to return to the main menu
 
 ⌨️ Controls
 Action	Key / Mouse
-Move Up	W
-Move Down	S
-Move Left	A
+Move Up 	W
+Move Down	 S
+Move Left	 A
 Move Right	D
-Return / Confirm	ENTER
+Return / Confirm 	ENTER
 Back / Quit	ESC
 Click buttons	Mouse
 💾 Installation
@@ -87,7 +87,7 @@ Add screenshots inside your assets/screenshots/ folder and include them like thi
 <img width="1907" height="1008" alt="image" src="https://github.com/user-attachments/assets/88e6c835-f6fa-471f-b4f9-ff9a9e04444b" />
 
 
-![Game Over](assets/screenshots/gameover.png)
+![Game Over]
 <img width="1038" height="718" alt="image" src="https://github.com/user-attachments/assets/301f57e7-b456-4956-ab12-7eb0384a3d8c" />
 
 
@@ -104,7 +104,6 @@ assets/
 ├── coin.png
 ├── background.png
 ├── dejavusans.ttf
-├── screenshots/  ← Add your screenshots here
 
 ⚙️ Dependencies
 

@@ -53,7 +53,7 @@ Click buttons	Mouse
 
 Clone the repository:
 
-git clone https://github.com/maheen_8q/maze-game.git
+git clone https://github.com/maheen8q/maze-game.git
 cd maze-game
 
 

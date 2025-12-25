@@ -67,19 +67,20 @@ SDL3_ttf
 
 Compile the game:
 
-gcc main.c -o maze_game -I/path/to/SDL3/include -L/path/to/SDL3/lib -lSDL3 -lSDL3_image -lSDL3_ttf
+gcc main.c -o main.exe -I(path to sld include) -L(path to sld lib) -lSDL3
 
 
 Run the executable:
 
-./maze_game
+./main.exe
 
 🖼️ Screenshots
 
 Add screenshots inside your assets/screenshots/ folder and include them like this:
 
 ![Menu Screen]
-<img width="801" height="634" alt="image" src="https://github.com/user-attachments/assets/cb3a28a5-eeeb-40f1-915c-1b88874ea2e9" />
+<img width="949" height="609" alt="image" src="https://github.com/user-attachments/assets/0f5ab338-9572-4956-9131-e8232bfe311c" />
+
 
 ![Gameplay]
 <img width="945" height="552" alt="image" src="https://github.com/user-attachments/assets/f41aa630-7a21-444f-9483-bec363e23c95" />

@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
+#include <math.h>
 
 
 
@@ -55,9 +56,9 @@ Uint32 messageTime = 0;
 void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, SDL_Window *window,
               SDL_Texture *playerTex, SDL_Texture *keyTex, SDL_Texture *doorTex, SDL_Texture *wallTex, SDL_Texture *floorTex, SDL_Texture *coinTex ) 
 {
-    int size = 24;
+    int size = 28;
     int playersize = 24;
-    int itemsize = 28;
+    int itemsize = 32;
     
 
    float centerOffsetPlayer = (playersize - size) / 2.0f;
@@ -87,7 +88,23 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
             }
             // Draw wall
             else if (maze[i][j] == '#') {
-                SDL_RenderTexture(renderer, wallTex, NULL, &rect);
+             // Draw shadow first (offset down-right)
+               SDL_SetRenderDrawColor(renderer, 0, 0, 0, 100);  // Dark shadow
+               SDL_FRect shadowRect = {rect.x + 2, rect.y + 2, rect.w, rect.h};
+               SDL_RenderFillRect(renderer, &shadowRect);
+    
+              // Draw main wall texture
+               SDL_RenderTexture(renderer, wallTex, NULL, &rect);
+    
+              // Add top-left highlight for 3D effect
+               SDL_SetRenderDrawColor(renderer, 150, 180, 220, 150);  // Light blue highlight
+               SDL_RenderLine(renderer, rect.x, rect.y, rect.x + rect.w, rect.y);
+               SDL_RenderLine(renderer, rect.x, rect.y, rect.x, rect.y + rect.h);
+    
+              // Add bottom-right shadow edge for depth
+               SDL_SetRenderDrawColor(renderer, 30, 50, 100, 200);  // Dark shadow edge
+               SDL_RenderLine(renderer, rect.x + rect.w, rect.y, rect.x + rect.w, rect.y + rect.h);
+               SDL_RenderLine(renderer, rect.x, rect.y + rect.h, rect.x + rect.w, rect.y + rect.h);
             }
             // Draw key
             else if (maze[i][j] == 'K') {
@@ -102,6 +119,10 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
                  };
                 
                 SDL_RenderTexture(renderer, keyTex, NULL, &keyRect);
+                //key glow effect
+                SDL_SetRenderDrawColor(renderer, 255, 200, 0, 100);
+                SDL_FRect glowRect = {keyRect.x - 3, keyRect.y - 3, keyRect.w + 6, keyRect.h + 6};
+                SDL_RenderRect(renderer, &glowRect);
             }
             // Draw door
             else if (maze[i][j] == 'D') {
@@ -115,9 +136,16 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
                  itemsize
                  };
                 SDL_RenderTexture(renderer, doorTex, NULL, &doorRect);
+                //door glow effect
+                SDL_SetRenderDrawColor(renderer, 200, 100, 255, 100);
+                SDL_FRect doorGlowRect = {doorRect.x - 3, doorRect.y - 3, doorRect.w + 6, doorRect.h + 6};
+                SDL_RenderRect(renderer, &doorGlowRect);
             }
         }
     }
+
+    Uint32 currentTick = SDL_GetTicks();
+    int glowIntensity = (int)(50 + 50 * sin(currentTick / 500.0)); 
 
     for (int i = 0; i < MAX_COINS; i++) {
     if (!coins[i].collected) {
@@ -128,6 +156,10 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
             itemsize
         };
         SDL_RenderTexture(renderer, coinTex, NULL, &coinRect);
+        // Draw glow effect
+        SDL_SetRenderDrawColor(renderer, 255, 255, 0, glowIntensity);
+        SDL_FRect coinGlowRect = {coinRect.x - 2, coinRect.y - 2, coinRect.w + 4, coinRect.h + 4};
+        SDL_RenderRect(renderer, &coinGlowRect);
     }
 }
 
@@ -141,6 +173,10 @@ void drawMaze(SDL_Renderer *renderer, char maze[ROWS][COLUMNS], Player *player, 
     playersize,
     playersize
    };
+   // Player glow
+    SDL_SetRenderDrawColor(renderer, 0, 255, 100, 150);
+    SDL_FRect playerGlowRect = {playerRect.x - 4, playerRect.y - 4, playerRect.w + 8, playerRect.h + 8};
+    SDL_RenderRect(renderer, &playerGlowRect);
     SDL_RenderTexture(renderer, playerTex, NULL, &playerRect);
 }
 
@@ -828,6 +864,15 @@ if (!bgTex) {
             char timeStr[20];
             snprintf(timeStr, sizeof(timeStr), "%02d:%02d", minutes, secs);
 
+            // Draw HUD background
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);  // Semi-transparent black
+            SDL_FRect hudBg = {5, 5, 450, 60};
+            SDL_RenderFillRect(renderer, &hudBg);
+    
+            // Draw HUD border
+            SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+            SDL_RenderRect(renderer, &hudBg);
+
             // HUD
             SDL_Color yellow = {255,255,0,255};
             char hud[50];
@@ -850,11 +895,18 @@ if (!bgTex) {
                 if (msgSurf) {
                     SDL_Texture *msgTex = SDL_CreateTextureFromSurface(renderer, msgSurf);
                     if (msgTex) {
-                        SDL_FRect msgRect = {10, 50, (float)msgSurf->w, (float)msgSurf->h};
-                        SDL_RenderTexture(renderer, msgTex, NULL, &msgRect);
-                        SDL_DestroyTexture(msgTex);
+                        // Message background
+                      SDL_SetRenderDrawColor(renderer, 0, 100, 200, 200);
+                      SDL_FRect msgBg = {5, 70, (float)msgSurf->w + 20, (float)msgSurf->h + 10};
+                      SDL_RenderFillRect(renderer, &msgBg);
+                      SDL_SetRenderDrawColor(renderer, 100, 200, 255, 255);
+                      SDL_RenderRect(renderer, &msgBg);
+                
+                      SDL_FRect msgRect = {15, 75, (float)msgSurf->w, (float)msgSurf->h};
+                      SDL_RenderTexture(renderer, msgTex, NULL, &msgRect);
+                      SDL_DestroyTexture(msgTex);
                     }
-                    SDL_DestroySurface(msgSurf);
+                SDL_DestroySurface(msgSurf);
                 }
             }
     }

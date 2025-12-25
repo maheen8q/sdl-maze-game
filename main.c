@@ -286,12 +286,37 @@ void checkPlayerCollision(Player *player, Coin coins[], int maxCoins) {
     }
 }
 
-void drawButton(SDL_Renderer *renderer, TTF_Font *font, Button *btn) {
-    SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+void drawButtonWithGlow(SDL_Renderer *renderer, TTF_Font *font, Button *btn, int isHovered) {
+    // Adjust glow intensity if hovered
+    int glowIntensity = isHovered ? 150 : 100;
+    int borderIntensity = isHovered ? 255 : 200;
+    
+    // Draw neon glow effect (outer glow)
+    SDL_SetRenderDrawColor(renderer, 0, 255, 255, glowIntensity);
+    SDL_FRect glowRect1 = {btn->rect.x - 4, btn->rect.y - 4, btn->rect.w + 8, btn->rect.h + 8};
+    SDL_RenderFillRect(renderer, &glowRect1);
+    
+    // Draw secondary glow layer
+    SDL_SetRenderDrawColor(renderer, 0, 200, 255, glowIntensity - 30);
+    SDL_FRect glowRect2 = {btn->rect.x - 2, btn->rect.y - 2, btn->rect.w + 4, btn->rect.h + 4};
+    SDL_RenderFillRect(renderer, &glowRect2);
+    
+    // Draw button background
+    SDL_SetRenderDrawColor(renderer, 10, 50, 80, 255);
     SDL_RenderFillRect(renderer, &btn->rect);
-
-    SDL_Color white = {255,255,255,255};
-    SDL_Surface *s = TTF_RenderText_Blended(font, btn->text, strlen(btn->text), white);
+    
+    // Draw neon border (bright cyan)
+    SDL_SetRenderDrawColor(renderer, 0, 255, 255, borderIntensity);
+    SDL_RenderRect(renderer, &btn->rect);
+    
+    // Draw inner border highlight
+    SDL_SetRenderDrawColor(renderer, 100, 255, 255, borderIntensity - 50);
+    SDL_FRect innerBorder = {btn->rect.x + 2, btn->rect.y + 2, btn->rect.w - 4, btn->rect.h - 4};
+    SDL_RenderRect(renderer, &innerBorder);
+    
+    // Draw text
+    SDL_Color neonCyan = {0, 255, 255, borderIntensity};
+    SDL_Surface *s = TTF_RenderText_Blended(font, btn->text, strlen(btn->text), neonCyan);
     SDL_Texture *t = SDL_CreateTextureFromSurface(renderer, s);
 
     SDL_FRect textRect = {
@@ -800,13 +825,21 @@ if (!bgTex) {
         drawBackground(renderer, bgTex);
         
          if (currentState == STATE_MENU) {
-            drawButton(renderer, font, &playBtn);
-            drawButton(renderer, font, &scoreBtn);
-            drawButton(renderer, font, &quitBtn);
+             float mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+    
+            // Draw buttons with hover detection
+             int playHovered = isClicked(&playBtn, mouseX, mouseY);
+             int scoreHovered = isClicked(&scoreBtn, mouseX, mouseY);
+             int quitHovered = isClicked(&quitBtn, mouseX, mouseY);
+    
+             drawButtonWithGlow(renderer, font, &playBtn, playHovered);
+             drawButtonWithGlow(renderer, font, &scoreBtn, scoreHovered);
+             drawButtonWithGlow(renderer, font, &quitBtn, quitHovered);
 
-           SDL_Color white = {255,255,255,255};
+            SDL_Color white = {255,255,255,255};
            
-           SDL_Surface *promptSurf = TTF_RenderText_Blended(font, "Enter your name:", 
+            SDL_Surface *promptSurf = TTF_RenderText_Blended(font, "Enter your name:", 
                 strlen("Enter your name:"), white);
             if (promptSurf) {
                 SDL_Texture *promptTex = SDL_CreateTextureFromSurface(renderer, promptSurf);

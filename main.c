@@ -347,7 +347,7 @@ int getHighScore(char *bestUser) {
 
 int calculateSCore(Player *player) {
     time_t currentTime = time(NULL);
-    int elapsedSeconds = (int)(currentTime - player->startTime);
+    int elapsedSeconds = (int)(player->endTime - player->startTime);
     int coinsScore = player->coins * 100;   
     int timePenalty = elapsedSeconds * 1;  // 1 point per second
     

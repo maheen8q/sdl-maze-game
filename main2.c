@@ -612,7 +612,7 @@ int main(int argc, char *argv[])
     return 1;
 }
 
-TTF_Font *font = TTF_OpenFont("assets/arial.ttf", 24);
+TTF_Font *font = TTF_OpenFont("assets/dejavusans.ttf", 24);
 if (!font) {
     printf("Failed to load font: %s\n", SDL_GetError());
     TTF_Quit();

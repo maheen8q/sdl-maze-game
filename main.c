@@ -612,7 +612,7 @@ int main(int argc, char *argv[])
     return 1;
 }
 
-TTF_Font *font = TTF_OpenFont("assets/arial.ttf", 24);
+TTF_Font *font = TTF_OpenFont("assets/dejavusans.ttf", 24);
 if (!font) {
     printf("Failed to load font: %s\n", SDL_GetError());
     TTF_Quit();
@@ -899,7 +899,7 @@ if (!bgTex) {
 
             // Draw HUD background
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);  // Semi-transparent black
-            SDL_FRect hudBg = {5, 5, 450, 60};
+            SDL_FRect hudBg = {5, 5, 500, 60};
             SDL_RenderFillRect(renderer, &hudBg);
     
             // Draw HUD border

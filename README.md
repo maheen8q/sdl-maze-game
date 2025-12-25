@@ -53,8 +53,8 @@ Click buttons	Mouse
 
 Clone the repository:
 
-git clone https://github.com/maheen8q/maze-game.git
-cd maze-game
+git clone https://github.com/maheen8q/sdl-maze-game.git
+cd sdl-maze-game
 
 
 Install dependencies:
